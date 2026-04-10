@@ -1,0 +1,13 @@
+node_modules/
+.next/
+data/
+*.tsbuildinfo
+.env
+.env.local
+.env*.local
+skills/
+pinchtab-repo/
+download/
+worklog.md
+README.md
+bun.lock
