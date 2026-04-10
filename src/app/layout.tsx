@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Marveldle Daily Answers",
-  description: "Daily answers and archive for Marveldle - Comics & MCU modes",
+  description: "Daily answers and archive for Marveldle - Comics & MCU modes. Updated automatically.",
 };
 
 export default function RootLayout({

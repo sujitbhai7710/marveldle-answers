@@ -1,0 +1,109 @@
+{
+  "2026-04-09": {
+    "date": "2026-04-09",
+    "dateId": "yesterday",
+    "comics": {
+      "id": "doop",
+      "name": "Doop",
+      "gender": "Male",
+      "type": "Superhero",
+      "species": [
+        "ArtificialBeing"
+      ],
+      "powerTypes": [
+        "Strength",
+        "Energy",
+        "Resistance",
+        "Regeneration",
+        "Magic",
+        "Perception",
+        "Flight",
+        "Shapeshifting",
+        "Psychic",
+        "InterdimensionalTravel"
+      ],
+      "origin": "Earth",
+      "apparitionYear": 2001,
+      "firstApparitionComicTitle": "X-Force #116",
+      "keywords": [
+        "doop"
+      ]
+    },
+    "mcu": {
+      "id": "quaz",
+      "name": "Quaz",
+      "gender": "Male",
+      "type": "Supporting",
+      "species": [
+        "Unknown"
+      ],
+      "powerTypes": [
+        "Psychic"
+      ],
+      "origin": "Unknown",
+      "actorName": "William Jackson Harper",
+      "appearanceTypes": [
+        "Movie"
+      ],
+      "affiliations": [
+        "FreedomFighters"
+      ],
+      "keywords": [
+        "quaz"
+      ]
+    },
+    "solvedAt": "2026-04-10T12:59:56.913Z"
+  },
+  "2026-04-10": {
+    "date": "2026-04-10",
+    "dateId": "4/10/2026 12:00:00 AM",
+    "comics": {
+      "id": "blackwidow",
+      "name": "Black Widow",
+      "gender": "Female",
+      "type": "Superhero",
+      "species": [
+        "Human",
+        "Mutate"
+      ],
+      "powerTypes": [
+        "Strength",
+        "Agility",
+        "Resistance",
+        "Regeneration"
+      ],
+      "origin": "Earth",
+      "apparitionYear": 1964,
+      "firstApparitionComicTitle": "Tales of Suspense #52",
+      "keywords": [
+        "Romanova",
+        "Natasha Romanova",
+        "Natalia"
+      ]
+    },
+    "mcu": {
+      "id": "mrparadox",
+      "name": "Mr. Paradox",
+      "gender": "Male",
+      "type": "Villain",
+      "species": [
+        "Human"
+      ],
+      "powerTypes": [
+        "None"
+      ],
+      "origin": "Earth",
+      "actorName": "Matthew Macfadyen",
+      "appearanceTypes": [
+        "Movie"
+      ],
+      "affiliations": [
+        "TVA"
+      ],
+      "keywords": [
+        "paradox"
+      ]
+    },
+    "solvedAt": "2026-04-10T13:00:37.054Z"
+  }
+}

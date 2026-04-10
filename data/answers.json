@@ -1,0 +1,36 @@
+{
+  "4/9/2026 12:00:00 AM": {
+    "date": "2026-04-09",
+    "dateId": "4/9/2026 12:00:00 AM",
+    "comics": {
+      "apparitionYear": 2001,
+      "firstApparitionComicTitle": "X-Force #116",
+      "id": "doop",
+      "name": "Doop",
+      "gender": "Male",
+      "type": "Superhero",
+      "powerTypes": ["Strength", "Energy", "Resistance", "Regeneration", "Magic", "Perception", "Flight", "Shapeshifting", "Psychic", "InterdimensionalTravel"],
+      "species": ["ArtificialBeing"],
+      "origin": "Earth",
+      "keywords": ["doop"],
+      "gameInfo": { "id": "doop-comics", "canDailyClassicGuessPick": true, "canUse": true },
+      "characterCategories": null
+    },
+    "mcu": {
+      "appearanceTypes": ["Movie"],
+      "affiliations": ["FreedomFighters"],
+      "actorName": "William Jackson Harper",
+      "id": "quaz",
+      "name": "Quaz",
+      "gender": "Male",
+      "type": "Supporting",
+      "powerTypes": ["Psychic"],
+      "species": ["Unknown"],
+      "origin": "Unknown",
+      "keywords": ["quaz"],
+      "gameInfo": { "id": "quaz-audiovisual", "canDailyClassicGuessPick": true, "canUse": true },
+      "characterCategories": null
+    },
+    "solvedAt": "2026-04-09T12:00:00.000Z"
+  }
+}
