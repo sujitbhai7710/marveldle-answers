@@ -61,19 +61,36 @@ export function getMCUTiles(c: CharacterData): TileState[] {
   ];
 }
 
-export const TILE_COLORS: { value: TileColor; bg: string; border: string; text: string; label: string; symbol: string }[] = [
-  { value: "none", bg: "bg-gray-700", border: "border-gray-600", text: "text-gray-300", label: "None", symbol: "✕" },
-  { value: "partial", bg: "bg-yellow-600", border: "border-yellow-500", text: "text-white", label: "Partial", symbol: "◐" },
-  { value: "exact", bg: "bg-green-600", border: "border-green-500", text: "text-white", label: "Exact", symbol: "✓" },
-  { value: "upper", bg: "bg-blue-600", border: "border-blue-500", text: "text-white", label: "Upper", symbol: "↑" },
-  { value: "lower", bg: "bg-blue-600", border: "border-blue-500", text: "text-white", label: "Lower", symbol: "↓" },
+/**
+ * EXACT Marveldle color codes extracted from the game's Angular JS bundle.
+ *
+ * .exact  -> background-color: green;          (#008000)
+ * .partial-> background-color: #ff8c00;         (Dark Orange)
+ * .none   -> background-color: brown;           (#A52A2A)
+ * .upper  -> background-color: purple;          (#800080)  + up-arrow overlay  (Comics Year only)
+ * .lower  -> background-color: #4e5aff;         (Bright Blue) + down-arrow overlay (Comics Year only)
+ *
+ * All tiles use white text (#FFFFFF), 1px solid white border, and inset box-shadow.
+ */
+export const TILE_COLORS: {
+  value: TileColor;
+  bgHex: string;
+  label: string;
+  symbol: string;
+  description: string;
+  cssClass?: string;
+}[] = [
+  { value: "none",    bgHex: "#A52A2A", label: "None",     symbol: "\u2715", description: "No match at all" },
+  { value: "exact",   bgHex: "#008000", label: "Exact",    symbol: "\u2713", description: "Exact match" },
+  { value: "partial", bgHex: "#FF8C00", label: "Partial",  symbol: "\u25D0", description: "Some items match, but not all" },
+  { value: "upper",   bgHex: "#800080", label: "Higher",   symbol: "\u2191", description: "Answer year is higher (Comics only)" },
+  { value: "lower",   bgHex: "#4E5AFF", label: "Lower",    symbol: "\u2193", description: "Answer year is lower (Comics only)" },
 ];
 
-export function cycleColor(current: TileColor): TileColor {
-  const order: TileColor[] = ["none", "exact", "partial", "none"];
-  const numericOrder: TileColor[] = ["none", "exact", "upper", "lower", "none"];
-  return current;
-  // We'll handle cycling in the component based on isNumeric
+/** Get color hex for a given TileColor */
+export function getColorHex(color: TileColor): string {
+  const found = TILE_COLORS.find((c) => c.value === color);
+  return found ? found.bgHex : "#A52A2A";
 }
 
 export function cycleTileColor(tile: TileState): TileColor {
