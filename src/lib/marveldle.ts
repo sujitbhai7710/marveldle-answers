@@ -72,16 +72,18 @@ export interface GuessResult {
   actorName?: string;
 }
 
-export interface DailyAnswer {
-  date: string;
-  dateId: string;
-  comics: ComicsCharacter | null;
-  mcu: MCUCharacter | null;
-  solvedAt: string;
+export interface CharacterBase {
+  id: string;
+  name: string;
+  gender: string;
+  type: string;
+  species: string[];
+  powerTypes: string[];
+  origin: string;
 }
 
 export const MARVELDLE_API = "https://api.marveldle.com/api";
-export const HEADERS = {
+const HEADERS = {
   Origin: "https://marveldle.com",
   Referer: "https://marveldle.com/",
   "userLanguage": "en",
@@ -95,10 +97,13 @@ function createSessionId(): string {
   });
 }
 
-export async function getSession(sessionId?: string): Promise<{ id: string } & Record<string, unknown>> {
-  const sid = sessionId || createSessionId();
-  const url = `${MARVELDLE_API}/session`;
-  const res = await fetch(url, {
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function getSession(): Promise<{ id: string } & Record<string, unknown>> {
+  const sid = createSessionId();
+  const res = await fetch(`${MARVELDLE_API}/session`, {
     headers: { ...HEADERS, sessionId: sid },
   });
   const data = await res.json();
@@ -106,16 +111,14 @@ export async function getSession(sessionId?: string): Promise<{ id: string } & R
 }
 
 export async function getLastPickId(sessionId: string): Promise<string> {
-  const url = `${MARVELDLE_API}/config/pick-id`;
-  const res = await fetch(url, {
+  const res = await fetch(`${MARVELDLE_API}/config/pick-id`, {
     headers: { ...HEADERS, sessionId },
   });
   return await res.text();
 }
 
 export async function getPickDates(sessionId: string): Promise<string[]> {
-  const url = `${MARVELDLE_API}/config/pick-dates`;
-  const res = await fetch(url, {
+  const res = await fetch(`${MARVELDLE_API}/config/pick-dates`, {
     headers: { ...HEADERS, sessionId },
   });
   return await res.json();
@@ -138,8 +141,7 @@ export async function getYesterdayCharacter(
   mode: "comics" | "audiovisual",
   sessionId: string
 ): Promise<ComicsCharacter | MCUCharacter> {
-  const url = `${MARVELDLE_API}/characters/${mode}/yesterday`;
-  const res = await fetch(url, {
+  const res = await fetch(`${MARVELDLE_API}/characters/${mode}/yesterday`, {
     headers: { ...HEADERS, sessionId },
   });
   return await res.json();
@@ -149,13 +151,8 @@ export async function getAllCharacters(
   mode: "comics" | "audiovisual",
   sessionId: string
 ): Promise<ComicsCharacter[] | MCUCharacter[]> {
-  const url = `${MARVELDLE_API}/characters/${mode}`;
-  const res = await fetch(url, {
+  const res = await fetch(`${MARVELDLE_API}/characters/${mode}`, {
     headers: { ...HEADERS, sessionId },
   });
   return await res.json();
-}
-
-export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }

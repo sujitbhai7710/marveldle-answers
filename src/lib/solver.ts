@@ -4,51 +4,72 @@ import {
   getPickDates,
   guessCharacter,
   getAllCharacters,
-  getYesterdayCharacter,
   sleep,
+  type CharacterBase,
+  type GuessResult,
   type ComicsCharacter,
   type MCUCharacter,
-  type GuessResult,
 } from "./marveldle";
-import { loadAnswers, setAnswer, type StoredAnswers } from "./store";
 
-interface CharacterBase {
-  id: string;
-  name: string;
-  gender: string;
-  type: string;
-  species: string[];
-  powerTypes: string[];
-  origin: string;
+// LocalStorage-based persistence for GitHub Pages (static hosting)
+const STORAGE_KEY = "marveldle_answers_v2";
+
+export interface DailyAnswer {
+  date: string;
+  dateId: string;
+  comics: CharacterBase & {
+    apparitionYear?: number;
+    firstApparitionComicTitle?: string;
+  } | null;
+  mcu: CharacterBase & {
+    actorName?: string;
+    appearanceTypes?: string[];
+    affiliations?: string[];
+  } | null;
+  solvedAt: string;
 }
 
-// Comics-specific attributes for guessing
-function getComicsAttributes(char: CharacterBase & { apparitionYear?: number }): Record<string, string | number | string[]> {
-  return {
-    gender: char.gender,
-    type: char.type,
-    species: char.species || [],
-    powerTypes: char.powerTypes || [],
-    origin: char.origin,
-    apparitionYear: (char as ComicsCharacter).apparitionYear || 0,
-  };
+export interface StoredAnswers {
+  [dateKey: string]: DailyAnswer;
 }
 
-// MCU-specific attributes for guessing
-function getMCUAttributes(char: CharacterBase & { appearanceTypes?: string[]; affiliations?: string[]; actorName?: string }): Record<string, string | number | string[]> {
-  return {
-    gender: char.gender,
-    type: char.type,
-    species: char.species || [],
-    powerTypes: char.powerTypes || [],
-    origin: char.origin,
-    appearanceTypes: (char as MCUCharacter).appearanceTypes || [],
-    affiliations: (char as MCUCharacter).affiliations || [],
-    actorName: (char as MCUCharacter).actorName || "",
-  };
+function loadFromStorage(): StoredAnswers {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error("Failed to load from localStorage:", e);
+  }
+  return {};
 }
 
-type MatchStatus = "Exact" | "Partial" | "None" | "Upper" | "Lower";
+function saveToStorage(answers: StoredAnswers): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
+  } catch (e) {
+    console.error("Failed to save to localStorage:", e);
+  }
+}
+
+export function getAnswer(dateKey: string): DailyAnswer | undefined {
+  const answers = loadFromStorage();
+  return answers[dateKey];
+}
+
+export function setAnswer(dateKey: string, answer: DailyAnswer): void {
+  const answers = loadFromStorage();
+  answers[dateKey] = answer;
+  saveToStorage(answers);
+}
+
+export function getAllAnswersSorted(): DailyAnswer[] {
+  const answers = loadFromStorage();
+  return Object.entries(answers)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([, v]) => v);
+}
 
 function matchesConstraint(
   character: CharacterBase,
@@ -56,45 +77,45 @@ function matchesConstraint(
   guessedChar: CharacterBase,
   mode: "comics" | "audiovisual"
 ): boolean {
-  // gender must match
+  // Gender
   if (guessResult.gender !== "None") {
     if (guessResult.gender === "Exact" && character.gender !== guessedChar.gender) return false;
     if (guessResult.gender === "None" && character.gender === guessedChar.gender) return false;
   }
 
-  // type must match
+  // Type
   if (guessResult.type !== "None") {
     if (guessResult.type === "Exact" && character.type !== guessedChar.type) return false;
     if (guessResult.type === "None" && character.type === guessedChar.type) return false;
   }
 
-  // species
+  // Species
   if (guessResult.species !== "None") {
-    const charSpecies = character.species || [];
-    const guessSpecies = guessedChar.species || [];
-    const overlap = charSpecies.filter((s) => guessSpecies.includes(s));
-    if (guessResult.species === "Exact" && overlap.length !== guessSpecies.length) return false;
+    const charSp = character.species || [];
+    const guessSp = guessedChar.species || [];
+    const overlap = charSp.filter((s) => guessSp.includes(s));
+    if (guessResult.species === "Exact" && overlap.length !== guessSp.length) return false;
     if (guessResult.species === "None" && overlap.length > 0) return false;
     if (guessResult.species === "Partial" && overlap.length === 0) return false;
   }
 
-  // powerTypes
+  // PowerTypes
   if (guessResult.powerTypes !== "None") {
-    const charPowers = character.powerTypes || [];
-    const guessPowers = guessedChar.powerTypes || [];
-    const overlap = charPowers.filter((p) => guessPowers.includes(p));
-    if (guessResult.powerTypes === "Exact" && overlap.length !== guessPowers.length) return false;
+    const charPw = character.powerTypes || [];
+    const guessPw = guessedChar.powerTypes || [];
+    const overlap = charPw.filter((p) => guessPw.includes(p));
+    if (guessResult.powerTypes === "Exact" && overlap.length !== guessPw.length) return false;
     if (guessResult.powerTypes === "None" && overlap.length > 0) return false;
     if (guessResult.powerTypes === "Partial" && overlap.length === 0) return false;
   }
 
-  // origin
+  // Origin
   if (guessResult.origin !== "None") {
     if (guessResult.origin === "Exact" && character.origin !== guessedChar.origin) return false;
     if (guessResult.origin === "None" && character.origin === guessedChar.origin) return false;
   }
 
-  // apparitionYear (comics only)
+  // ApparitionYear (comics only)
   if (mode === "comics" && guessResult.apparitionYear && guessResult.apparitionYear !== "None") {
     const charYear = (character as ComicsCharacter).apparitionYear || 0;
     const guessYear = (guessedChar as ComicsCharacter).apparitionYear || 0;
@@ -102,173 +123,138 @@ function matchesConstraint(
     if (guessResult.apparitionYear === "Lower" && charYear >= guessYear) return false;
   }
 
-  // MCU-specific fields
-  if (mode === "audiovisual") {
-    if (guessResult.appearanceTypes && guessResult.appearanceTypes !== "None") {
-      const charTypes = (character as MCUCharacter).appearanceTypes || [];
-      const guessTypes = (guessedChar as MCUCharacter).appearanceTypes || [];
-      const overlap = charTypes.filter((t) => guessTypes.includes(t));
-      if (guessResult.appearanceTypes === "Exact" && overlap.length !== guessTypes.length) return false;
-      if (guessResult.appearanceTypes === "None" && overlap.length > 0) return false;
-      if (guessResult.appearanceTypes === "Partial" && overlap.length === 0) return false;
-    }
+  // MCU-specific: appearanceTypes
+  if (mode === "audiovisual" && guessResult.appearanceTypes && guessResult.appearanceTypes !== "None") {
+    const charTypes = (character as MCUCharacter).appearanceTypes || [];
+    const guessTypes = (guessedChar as MCUCharacter).appearanceTypes || [];
+    const overlap = charTypes.filter((t) => guessTypes.includes(t));
+    if (guessResult.appearanceTypes === "Exact" && overlap.length !== guessTypes.length) return false;
+    if (guessResult.appearanceTypes === "None" && overlap.length > 0) return false;
+    if (guessResult.appearanceTypes === "Partial" && overlap.length === 0) return false;
   }
 
   return true;
 }
 
-function filterCandidates(
-  candidates: CharacterBase[],
-  guessResult: GuessResult,
-  guessedChar: CharacterBase,
-  mode: "comics" | "audiovisual"
-): CharacterBase[] {
-  if (guessResult.isExact) return candidates; // found it
-
-  return candidates.filter((c) => {
-    if (c.id === guessedChar.id) return false; // skip the guessed character itself
-    return matchesConstraint(c, guessResult, guessedChar, mode);
-  });
-}
-
-export async function solveDaily(
+async function solveMode(
   mode: "comics" | "audiovisual",
-  dateId: string
+  dateId: string,
+  sessionId: string,
+  onLog?: (msg: string) => void
 ): Promise<CharacterBase | null> {
-  // Create a fresh session
-  const session = await getSession();
-  const sessionId = session.id;
+  const log = onLog || (() => {});
 
-  // Get all characters for this mode
+  log(`Fetching ${mode} character list...`);
   const allChars = (await getAllCharacters(mode, sessionId)) as CharacterBase[];
+  log(`Got ${allChars.length} ${mode} characters`);
 
   let candidates = [...allChars];
   let attempts = 0;
-  const maxAttempts = 20; // Safety limit
-
-  console.log(`[Solve ${mode}] Starting with ${candidates.length} candidates for dateId: ${dateId}`);
+  const maxAttempts = 25;
 
   while (candidates.length > 1 && attempts < maxAttempts) {
-    // Pick a strategic character to guess
-    // Prefer characters from different types/genders to maximize information
-    const guessChar = candidates[Math.floor(Math.random() * Math.min(candidates.length, 10))];
+    const idx = Math.floor(Math.random() * Math.min(candidates.length, 15));
+    const guessChar = candidates[idx];
 
     try {
       const result = await guessCharacter(mode, guessChar.id, dateId, sessionId);
 
       if (result.isExact) {
-        console.log(`[Solve ${mode}] Found answer: ${guessChar.name} (${guessChar.id}) in ${attempts + 1} attempts`);
+        log(`${mode}: Found "${guessChar.name}" in ${attempts + 1} guesses!`);
         return guessChar;
       }
 
-      // Filter candidates based on guess result
-      const beforeCount = candidates.length;
-      candidates = filterCandidates(candidates, result, guessChar, mode);
-      console.log(`[Solve ${mode}] Guess #${attempts + 1}: ${guessChar.name} -> ${beforeCount} -> ${candidates.length} candidates`);
+      const before = candidates.length;
+      candidates = candidates.filter((c) => {
+        if (c.id === guessChar.id) return false;
+        return matchesConstraint(c, result, guessChar, mode);
+      });
+      log(`Guess #${attempts + 1}: ${guessChar.name} (${before} -> ${candidates.length})`);
 
       if (candidates.length === 0) {
-        console.log(`[Solve ${mode}] No candidates left! Backing off constraints.`);
-        candidates = [...allChars].filter((c) => c.id !== guessChar.id);
+        log("No candidates left, resetting...");
+        candidates = allChars.filter((c) => c.id !== guessChar.id);
       }
     } catch (err) {
-      console.error(`[Solve ${mode}] Error guessing ${guessChar.id}:`, err);
+      log(`Error guessing ${guessChar.id}: ${err}`);
     }
 
     attempts++;
-    await sleep(300); // Rate limit
+    await sleep(350);
   }
 
-  // If we narrowed to 1 candidate, verify it
-  if (candidates.length === 1) {
-    const finalGuess = candidates[0];
-    try {
-      const result = await guessCharacter(mode, finalGuess.id, dateId, sessionId);
-      if (result.isExact) {
-        console.log(`[Solve ${mode}] Verified answer: ${finalGuess.name} (${finalGuess.id})`);
-        return finalGuess;
+  // Try remaining one-by-one
+  if (candidates.length <= 1) {
+    for (const c of candidates.length === 1 ? candidates : allChars.filter((c) => !candidates.includes(c)).slice(0, 30)) {
+      try {
+        const result = await guessCharacter(mode, c.id, dateId, sessionId);
+        if (result.isExact) {
+          log(`${mode}: Verified "${c.name}"!`);
+          return c;
+        }
+      } catch (err) {
+        log(`Error: ${err}`);
       }
-    } catch (err) {
-      console.error(`[Solve ${mode}] Error verifying:`, err);
+      await sleep(250);
     }
   }
 
-  // Last resort: try all remaining candidates
-  console.log(`[Solve ${mode}] Trying remaining ${candidates.length} candidates individually...`);
-  for (const candidate of candidates.slice(0, 50)) {
-    try {
-      const result = await guessCharacter(mode, candidate.id, dateId, sessionId);
-      if (result.isExact) {
-        console.log(`[Solve ${mode}] Found answer: ${candidate.name} (${candidate.id})`);
-        return candidate;
-      }
-    } catch (err) {
-      console.error(`[Solve ${mode}] Error:`, err);
-    }
-    await sleep(200);
-  }
-
-  console.log(`[Solve ${mode}] Could not find answer after ${attempts} attempts`);
+  log(`${mode}: Could not solve after ${attempts} attempts`);
   return null;
 }
 
-export async function solveForDate(
-  dateId: string,
-  dateKey: string
-): Promise<{ comics: CharacterBase | null; mcu: CharacterBase | null }> {
-  // Check if already solved
-  const existing = loadAnswers();
-  if (existing[dateKey]) {
-    console.log(`[Solve] Already solved for ${dateKey}`);
+export async function solveToday(
+  onLog?: (msg: string) => void
+): Promise<{ comics: CharacterBase | null; mcu: CharacterBase | null; dateId: string; dateKey: string }> {
+  const log = onLog || (() => {});
+
+  // Check if already solved today
+  const today = new Date().toISOString().split("T")[0];
+  const existing = getAnswer(today);
+  if (existing && existing.comics && existing.mcu) {
+    log("Already solved today!");
     return {
-      comics: existing[dateKey].comics,
-      mcu: existing[dateKey].mcu,
+      comics: existing.comics,
+      mcu: existing.mcu,
+      dateId: existing.dateId,
+      dateKey: today,
     };
   }
 
-  console.log(`[Solve] Solving for ${dateKey} (${dateId})...`);
-
-  // Get fresh session
+  log("Creating session...");
   const session = await getSession();
   const sessionId = session.id;
 
-  // Get yesterday's answers as fallback
-  let yesterdayComics: ComicsCharacter | null = null;
-  let yesterdayMCU: MCUCharacter | null = null;
-  try {
-    yesterdayComics = (await getYesterdayCharacter("comics", sessionId)) as ComicsCharacter;
-    yesterdayMCU = (await getYesterdayCharacter("audiovisual", sessionId)) as MCUCharacter;
-  } catch (e) {
-    console.log("Could not fetch yesterday's answers");
-  }
+  log("Getting current date ID...");
+  const dateId = await getLastPickId(sessionId);
+  log(`Date ID: ${dateId}`);
 
-  // Solve both modes
-  const [comicsAnswer, mcuAnswer] = await Promise.all([
-    solveDaily("comics", dateId),
-    solveDaily("audiovisual", dateId),
+  // Solve both modes in parallel
+  const [comics, mcu] = await Promise.all([
+    solveMode("comics", dateId, sessionId, (m) => log(`[Comics] ${m}`)),
+    solveMode("audiovisual", dateId, sessionId, (m) => log(`[MCU] ${m}`)),
   ]);
 
   // Store results
-  const answer = {
-    date: dateKey,
+  const answer: DailyAnswer = {
+    date: today,
     dateId,
-    comics: comicsAnswer ? comicsAnswer as unknown as ComicsCharacter : null,
-    mcu: mcuAnswer ? mcuAnswer as unknown as MCUCharacter : null,
+    comics: comics ? {
+      ...comics,
+      apparitionYear: (comics as ComicsCharacter).apparitionYear,
+      firstApparitionComicTitle: (comics as ComicsCharacter).firstApparitionComicTitle,
+    } : null,
+    mcu: mcu ? {
+      ...mcu,
+      actorName: (mcu as MCUCharacter).actorName,
+      appearanceTypes: (mcu as MCUCharacter).appearanceTypes,
+      affiliations: (mcu as MCUCharacter).affiliations,
+    } : null,
     solvedAt: new Date().toISOString(),
   };
 
-  setAnswer(dateKey, answer as StoredAnswers[string]);
-  console.log(`[Solve] Saved answer for ${dateKey}`);
+  setAnswer(today, answer);
+  log("Answer saved!");
 
-  return { comics: comicsAnswer, mcu: mcuAnswer };
-}
-
-export async function solveToday(): Promise<{ comics: CharacterBase | null; mcu: CharacterBase | null }> {
-  const session = await getSession();
-  const sessionId = session.id;
-  const dateId = await getLastPickId(sessionId);
-
-  const today = new Date();
-  const dateKey = today.toISOString().split("T")[0];
-
-  return solveForDate(dateId, dateKey);
+  return { comics, mcu, dateId, dateKey: today };
 }
